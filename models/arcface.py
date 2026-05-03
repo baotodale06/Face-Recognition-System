@@ -135,3 +135,35 @@ class ArcFace:
                 swapRB=True
             )
             return face_blob
+        
+    def get_embedding(self, image: np.ndarray, landmarks: np.ndarray, normalized: bool = False) -> np.ndarray:
+        """
+        Extract face embed from image using facial landmarks for alignment
+        
+        Args:
+            image: input image (BGR)
+            landmarks: 5-point facial landmarks for alignment
+            normalized: whether normalize output vector embedding. defaults to False
+        
+        Returns:
+            np.ndarray: face embedding vector
+        
+        Raises:
+            ValueError: if inputs ar invalid
+        """
+        if image is None or landmarks is None:
+            raise ValueError("Image and Landmarks must not be None")
+        
+        try:
+            aligned_face, _ = face_alignment(image, landmarks)
+            face_blob = self.preprocess(aligned_face)
+            embedding = self.session.run(self.output_names, {self.input_name: face_blob})[0]
+
+            if normalized:
+                # L2 Norm
+                norm = np.linalg.norm(embedding, axis=1, keepdims=True)
+                normalized_embedding = embedding / norm
+                return embedding.flatten()
+        except Exception as e:
+            logger.error(f"Error extracting face embedding: {e}")
+            raise
